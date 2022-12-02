@@ -1,8 +1,7 @@
 // day01.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
-
+#include "../common.h"
 #include <iostream>
-#include <fstream>
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -12,23 +11,19 @@ int main()
     std::ifstream myfile("input.txt");
     std::string line;
     std::vector<unsigned long> elves;
-    if (myfile.is_open())
+    auto lines = GetLinesInFile("input.txt");
+    unsigned long current_elf_calories = 0;
+    for (const auto& line : lines)
     {
-        unsigned long current_elf_calories = 0;
-        while (std::getline(myfile, line))
+        if (line.size() == 0)
         {
-            if (line.size() == 0)
-            {
-                elves.push_back(current_elf_calories);
-                current_elf_calories = 0;
-                continue;
-            }
-            current_elf_calories += std::stoul(line);
+            elves.push_back(current_elf_calories);
+            current_elf_calories = 0;
+            continue;
         }
-        elves.push_back(current_elf_calories);
         current_elf_calories += std::stoul(line);
-        myfile.close();
     }
+    elves.push_back(current_elf_calories);
     std::sort(elves.begin(), elves.end());
     unsigned long top_three_sum = std::accumulate(elves.end() - 3, elves.end(), 0);
 
