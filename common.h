@@ -19,6 +19,7 @@ std::vector<std::string> GetWords(std::string str, char delim)
             word = word + x;
         }
     }
+    words.emplace_back(word);
     return words;
 }
 
