@@ -1,7 +1,6 @@
 #include "../common.h"
 #include <iostream>
 
-
 int main()
 {
     std::vector<std::string> lines = GetLinesInFile("input.txt");
