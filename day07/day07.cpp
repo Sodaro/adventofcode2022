@@ -2,63 +2,125 @@
 #include <iostream>
 #include <map>
 
-void PrintContent(std::map<std::string, std::vector<unsigned long>> directories, std::string current_path)
+
+struct Directory
 {
-    std::cout << current_path << std::endl;
-    for (const auto& val : directories[current_path])
+    std::string path = "";
+    Directory* parent = nullptr;
+    std::map<std::string, Directory*> directories;
+    std::map<std::string, int> files;
+};
+
+void PrintContent(const Directory* directory)
+{
+    std::cout << directory->path << std::endl;
+    for (const auto& file_pair : directory->directories)
     {
-        std::cout << current_path << " " << val << std::endl;
+        std::cout << file_pair.first << std::endl;
+    }
+
+    for (const auto& file_pair : directory->files)
+    {
+        //std::cout << current_path << " " << val << std::endl;
+        std::cout << file_pair.first << " size: " << file_pair.second << std::endl;
     }
 }
 
-void FindDirectoryOfSizeSmaller(std::map<std::string, std::vector<unsigned long>> directories, unsigned long upper_threshold)
+int GetDirectorySize(Directory* directory, int upper_threshold, int& total_size)
 {
-    //TODO: e is missing file
-    unsigned long total_sum = 0;
-    for (const auto& pair : directories)
+    int directory_size = 0;
+    for (const auto& pair : directory->directories)
     {
-        unsigned long directory_sum = 0;
-        for (const auto& val : pair.second)
-        {
-            directory_sum += val;
-        }
-        if (directory_sum < upper_threshold)
-            total_sum += directory_sum;
+        auto size = GetDirectorySize(pair.second, upper_threshold, total_size);
+        directory_size += size;
     }
-    std::cout << total_sum << std::endl;
+    for (const auto& pair : directory->files)
+    {
+        directory_size += pair.second;
+    }
+
+    if (directory_size <= upper_threshold)
+        total_size += directory_size;
+
+    return directory_size;
+}
+
+int FindSmallestDirectoryOverThreshold(Directory* directory, int threshold, int& smallest_over_threshold)
+{
+    int directory_size = 0;
+    for (const auto& pair : directory->directories)
+    {
+        auto size = FindSmallestDirectoryOverThreshold(pair.second, threshold, smallest_over_threshold);
+        if (size >= threshold && size <= smallest_over_threshold)
+            smallest_over_threshold = size;
+
+        directory_size += size;
+    }
+    for (const auto& pair : directory->files)
+    {
+        directory_size += pair.second;
+    }
+
+    return directory_size;
 }
 
 int main()
 {
-    //std::vector<std::string> directory_paths;
-    std::map<std::string, std::vector<unsigned long>> directories;
+    Directory root;
+    root.path = "/";
+    Directory* current_directory = &root;
     auto lines = GetLinesInFile("test.txt");
-    std::string current_directory_path = "";
-    directories[current_directory_path] = std::vector<unsigned long> ();
-    for (int i = 1; i < lines.size(); i++)
+    int available_space = 70000000;
+    for (int i = 1; i < lines.size(); i++) //skipping first line as it's cd '/', which is what we use for root dir
     {
         auto words = GetWords(lines[i], ' ');
         if (words[1] == "ls")
-            PrintContent(directories, current_directory_path);
+        {
+            //ls was always called after creating a fresh dir, which means that one is empty
+            //and never prints anything, printing parent instead
+            if (current_directory->parent != nullptr) 
+                PrintContent(current_directory->parent);
+        }
         else if (words[0] == "dir")
         {
-            directories.emplace(current_directory_path + "/" + words[1], std::vector<unsigned long>{});
+            //Create directory
+            std::string new_path = current_directory->path + words[1] + "/";
+            auto new_dir = new Directory();
+            new_dir->parent = current_directory;
+            new_dir->path = new_path;
+            current_directory->directories.emplace(new_path, new_dir);
         }
         else if (words[1] == "cd")
         {
             if (words[2] == "..")
             {
-                current_directory_path = current_directory_path.substr(0, current_directory_path.find_last_of('/'));
+                //go up one directory
+                current_directory = current_directory->parent;
             }
             else
             {
-                current_directory_path += "/" + words[2];
+                //step into directory
+                std::string target_path = current_directory->path + words[2] + "/";
+                current_directory = current_directory->directories[target_path];
             }
         }
         else
         {
-            directories[current_directory_path].emplace_back(std::stoul(words[0]));
+            int size = std::stoi(words[0]);
+            current_directory->files[current_directory->path + words[1]] = size; //create file
+            available_space -= size;
         }
     }
-    FindDirectoryOfSizeSmaller(directories, 100000);
+
+    //--------------PART1-----------------
+    int amount_under_threshold = 0;
+    GetDirectorySize(&root, 100000, amount_under_threshold);
+    std::cout << amount_under_threshold << std::endl;
+
+    //--------------PART2-----------------
+    int needed_space_for_update = 30000000;
+    int amount_to_free = needed_space_for_update - available_space;
+    int smallest_over_threshold = INT_MAX;
+    FindSmallestDirectoryOverThreshold(&root, amount_to_free, smallest_over_threshold);
+    std::cout << smallest_over_threshold << std::endl;
 }
