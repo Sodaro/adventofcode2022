@@ -69,7 +69,7 @@ int main()
     Directory root;
     root.path = "/";
     Directory* current_directory = &root;
-    auto lines = GetLinesInFile("test.txt");
+    auto lines = GetLinesInFile("input.txt");
     int available_space = 70000000;
     for (int i = 1; i < lines.size(); i++) //skipping first line as it's cd '/', which is what we use for root dir
     {
